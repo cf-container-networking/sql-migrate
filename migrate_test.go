@@ -14,7 +14,7 @@ import (
 	"gopkg.in/gorp.v1"
 )
 
-var disableSQLiteFlag = flag.Bool("disable-sqlite", true, "Disable sqlite tests (default=true)")
+var disableSQLiteFlag = flag.Bool("disable-sqlite", false, "Disable sqlite tests (default=true)")
 
 var testDatabaseFile *os.File
 var sqliteMigrations = []*Migration{
@@ -38,7 +38,7 @@ type SqliteMigrateSuite struct {
 var _ = Suite(&SqliteMigrateSuite{})
 
 func (s *SqliteMigrateSuite) SetUpSuite(c *C) {
-	if !*disableSQLiteFlag {
+	if *disableSQLiteFlag {
 		c.Skip("Skipping sqlite tests due to '-disable-sqlite' flag being set")
 	}
 }
