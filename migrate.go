@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rubenv/sql-migrate/sqlparse"
 	"gopkg.in/gorp.v1"
+	"github.com/cf-container-networking/sql-migrate/sqlparse"
 )
 
 type MigrationDirection int
