@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dselans/sql-migrate/sqlparse"
-	"gopkg.in/gorp.v1"
+	"github.com/cf-container-networking/sql-migrate/sqlparse"
+	gorp "gopkg.in/gorp.v1"
 )
 
 type MigrationDirection int
