@@ -81,12 +81,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/rubenv/sql-migrate"
-  packages = [".","sqlparse"]
-  revision = "72a5478faa469f9023cc1802367cddfc5270acbb"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["md4"]
   revision = "6914964337150723782436d56b3f21610a74ce7b"
@@ -124,6 +118,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9169581863d86f9075f8a754c91f180fcd0fdca18b40b5623593f1a99bdf665b"
+  inputs-digest = "81af6a661861a9f2c62b413eb3e7fc242eb1ca100c94248710a94de81d8636fc"
   solver-name = "gps-cdcl"
   solver-version = 1
