@@ -14,16 +14,17 @@ import (
 	"strings"
 	"time"
 
-	"math/rand"
-
 	"github.com/cf-container-networking/sql-migrate/sqlparse"
-	gorp "gopkg.in/gorp.v1"
+	"gopkg.in/gorp.v1"
+	"log"
+	"os"
+	"math/rand"
 )
 
 type MigrationDirection int
 
 const (
-	Up MigrationDirection = iota
+	Up   MigrationDirection = iota
 	Down
 )
 
@@ -708,22 +709,44 @@ Check https://github.com/go-sql-driver/mysql#parsetime for more info.`)
 	// Create migration database map
 	dbMap := &gorp.DbMap{Db: db, Dialect: d}
 	dbMap.AddTableWithNameAndSchema(MigrationRecord{}, schemaName, tableName).SetKeys(false, "Id")
-	//dbMap.TraceOn("", log.New(os.Stdout, "migrate: ", log.Lmicroseconds))
+	dbMap.TraceOn("sql-migrate", log.New(os.Stdout, "migrate: ", log.Lmicroseconds))
 
 	// Create lock table
 	dbMap.AddTableWithNameAndSchema(LockRecord{}, schemaName, lockTableName).SetKeys(false, "Lock").ColMap("Lock").SetUnique(true)
 
-	err := dbMap.CreateTablesIfNotExists()
-	if err != nil {
-		rand.Seed(time.Now().UnixNano())
-		time.Sleep(time.Duration(rand.Intn(300)+100) * time.Millisecond)
-		err = dbMap.CreateTablesIfNotExists()
+	err := retryDuring(5*time.Second, 1*time.Second, func() error {
+		err := dbMap.CreateTablesIfNotExists()
 		if err != nil {
-			return nil, fmt.Errorf("create tables: %s", err)
-		}
-	}
+			return fmt.Errorf("create tables: %s", err)
 
-	return dbMap, nil
+		}
+		return nil
+	})
+
+	return dbMap, err
+}
+
+func retryDuring(duration time.Duration, sleep time.Duration, callback func() error) (err error) {
+	t0 := time.Now()
+	i := 0
+	for {
+		i++
+
+		err = callback()
+		if err == nil {
+			return
+		}
+
+		delta := time.Now().Sub(t0)
+		if delta > duration {
+			return fmt.Errorf("after %d attempts (during %s), last error: %s", i, delta, err)
+		}
+
+		offset := time.Duration(rand.Intn(300)+100) * time.Millisecond
+		time.Sleep(sleep + offset)
+
+		log.Print("retrying after error")
+	}
 }
 
 // TODO: Run migration + record insert in transaction.
