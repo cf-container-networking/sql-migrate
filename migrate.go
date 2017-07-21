@@ -16,6 +16,7 @@ import (
 
 	"gopkg.in/gorp.v1"
 	"github.com/cf-container-networking/sql-migrate/sqlparse"
+	"math/rand"
 )
 
 type MigrationDirection int
@@ -332,7 +333,7 @@ func ExecMaxWithLock(db *sql.DB, dialect string, m MigrationSource, dir Migratio
 		return 0, fmt.Errorf("Unable to instantiate dbmap: %v", err)
 	}
 
-	mlock, err := newMigrationLock(dbMap, waitTime)
+	mlock, err := newMigrationLock(dbMap, waitTime, dialect)
 	// Skip ExecMax if we encountered an error during newMigrationLock()
 	if err != nil {
 		return 0, err
@@ -369,7 +370,7 @@ type migrationLock struct {
 // * if insert succeeds, means we are the "master migrator"
 //     * return from beginLock() -> let ExecMax do its thing;
 //     * once ExecMax finishes, clean up our lock
-func newMigrationLock(dbMap *gorp.DbMap, waitTime time.Duration) (*migrationLock, error) {
+func newMigrationLock(dbMap *gorp.DbMap, waitTime time.Duration, dialect string) (*migrationLock, error) {
 	mlock := &migrationLock{
 		id:        time.Now().Nanosecond(),
 		dbMap:     dbMap,
@@ -378,7 +379,7 @@ func newMigrationLock(dbMap *gorp.DbMap, waitTime time.Duration) (*migrationLock
 	}
 
 	// Remove potentially stale lock
-	if err := mlock.removeStaleLock(); err != nil {
+	if err := mlock.removeStaleLock(dialect); err != nil {
 		return nil, err
 	}
 
@@ -407,10 +408,15 @@ func newMigrationLock(dbMap *gorp.DbMap, waitTime time.Duration) (*migrationLock
 // Remove a (potentially) stale lock
 //
 // Delete lock record if the lock is older than "now() - lockMaxStaleAge".
-func (m *migrationLock) removeStaleLock() error {
+func (m *migrationLock) removeStaleLock(dialect string) error {
 	maxDate := time.Now().Add(-lockMaxStaleAge)
 
-	_, err := m.dbMap.Exec("DELETE FROM gorp_lock WHERE acquired_at <= ?", maxDate)
+	query := "DELETE FROM gorp_lock WHERE acquired_at <= ?"
+	if dialect == "postgres" {
+		query = "DELETE FROM gorp_lock WHERE acquired_at <= $1"
+	}
+
+	_, err := m.dbMap.Exec(query, maxDate)
 	if err != nil {
 		return fmt.Errorf("Unable to remove stale lock: %v", err)
 	}
@@ -708,7 +714,12 @@ Check https://github.com/go-sql-driver/mysql#parsetime for more info.`)
 
 	err := dbMap.CreateTablesIfNotExists()
 	if err != nil {
-		return nil, err
+		rand.Seed(time.Now().UnixNano())
+		time.Sleep(time.Duration(rand.Intn(300) + 100) * time.Millisecond)
+		err = dbMap.CreateTablesIfNotExists()
+		if err != nil {
+			return nil, fmt.Errorf("create tables: %s", err)
+		}
 	}
 
 	return dbMap, nil
