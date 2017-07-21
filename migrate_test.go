@@ -303,7 +303,7 @@ func (s *SqliteMigrateSuite) TestRemoveStaleLock(c *C) {
 		AcquiredAt: time.Now().Add(-(1 * time.Hour)),
 	})
 
-	err1 := mlock.removeStaleLock()
+	err1 := mlock.removeStaleLock("sqlite3")
 	c.Assert(err1, IsNil)
 
 	var lockRecord LockRecord
@@ -320,7 +320,7 @@ func (s *SqliteMigrateSuite) TestRemoveStaleLock(c *C) {
 		AcquiredAt: time.Now(),
 	})
 
-	err = mlock.removeStaleLock()
+	err = mlock.removeStaleLock("sqlite3")
 	c.Assert(err, IsNil)
 
 	selectErr2 := s.DbMap.SelectOne(&lockRecord, fmt.Sprintf("SELECT * FROM %v", lockTableName))
