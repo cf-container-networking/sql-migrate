@@ -14,17 +14,17 @@ import (
 	"strings"
 	"time"
 
+	"log"
+	"math/rand"
+
 	"github.com/cf-container-networking/sql-migrate/sqlparse"
 	"gopkg.in/gorp.v1"
-	"log"
-	"os"
-	"math/rand"
 )
 
 type MigrationDirection int
 
 const (
-	Up   MigrationDirection = iota
+	Up MigrationDirection = iota
 	Down
 )
 
@@ -709,7 +709,7 @@ Check https://github.com/go-sql-driver/mysql#parsetime for more info.`)
 	// Create migration database map
 	dbMap := &gorp.DbMap{Db: db, Dialect: d}
 	dbMap.AddTableWithNameAndSchema(MigrationRecord{}, schemaName, tableName).SetKeys(false, "Id")
-	dbMap.TraceOn("sql-migrate", log.New(os.Stdout, "migrate: ", log.Lmicroseconds))
+	// dbMap.TraceOn("sql-migrate", log.New(os.Stdout, "migrate: ", log.Lmicroseconds))
 
 	// Create lock table
 	dbMap.AddTableWithNameAndSchema(LockRecord{}, schemaName, lockTableName).SetKeys(false, "Lock").ColMap("Lock").SetUnique(true)
