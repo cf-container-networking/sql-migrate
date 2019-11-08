@@ -50,10 +50,10 @@ type TxError struct {
 	Err       error
 }
 
-func newTxError(migration *PlannedMigration, err error) error {
+func newTxError(migration *PlannedMigration, prefix string, err error) error {
 	return &TxError{
 		Migration: migration.Migration,
-		Err:       err,
+		Err:       fmt.Errorf("%s: %s", prefix, err.Error()),
 	}
 }
 
@@ -494,7 +494,7 @@ func ExecMax(db *sql.DB, dialect string, m MigrationSource, dir MigrationDirecti
 		} else {
 			executor, err = dbMap.Begin()
 			if err != nil {
-				return applied, newTxError(migration, err)
+				return applied, newTxError(migration, "dbMap.Begin", err)
 			}
 		}
 
@@ -504,7 +504,7 @@ func ExecMax(db *sql.DB, dialect string, m MigrationSource, dir MigrationDirecti
 					trans.Rollback()
 				}
 
-				return applied, newTxError(migration, err)
+				return applied, newTxError(migration, "executor.Exec", err)
 			}
 		}
 
@@ -518,7 +518,7 @@ func ExecMax(db *sql.DB, dialect string, m MigrationSource, dir MigrationDirecti
 					trans.Rollback()
 				}
 
-				return applied, newTxError(migration, err)
+				return applied, newTxError(migration, "executor.Insert", err)
 			}
 		} else if dir == Down {
 			_, err := executor.Delete(&MigrationRecord{
@@ -529,7 +529,7 @@ func ExecMax(db *sql.DB, dialect string, m MigrationSource, dir MigrationDirecti
 					trans.Rollback()
 				}
 
-				return applied, newTxError(migration, err)
+				return applied, newTxError(migration, "executor.Delete", err)
 			}
 		} else {
 			panic("Not possible")
@@ -537,7 +537,7 @@ func ExecMax(db *sql.DB, dialect string, m MigrationSource, dir MigrationDirecti
 
 		if trans, ok := executor.(*gorp.Transaction); ok {
 			if err := trans.Commit(); err != nil {
-				return applied, newTxError(migration, err)
+				return applied, newTxError(migration, "trans.Commit", err)
 			}
 		}
 
